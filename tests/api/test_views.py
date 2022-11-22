@@ -68,7 +68,7 @@ def test_get_reco_with_correct_token(
     with client:
         client.headers = {"Authorization": f"Bearer {ENV_TOKEN['token']}"}
         response = client.get(path)
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
 
 
 def test_get_reco_with_incorrect_token(
@@ -79,5 +79,5 @@ def test_get_reco_with_incorrect_token(
     path = GET_RECO_PATH.format(model_name=model_name, user_id=user_id)
     with client:
         response = client.get(path)
-    assert response.status_code == 401
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json()["errors"][0]["error_key"] == "token_is_not_correct"

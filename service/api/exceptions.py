@@ -42,7 +42,7 @@ class ModelNotFoundError(AppException):
 class AuthenticateError(AppException):
     def __init__(
         self,
-        status_code: int = 401,
+        status_code: int = HTTPStatus.UNAUTHORIZED,
         error_key: str = "token_is_not_correct",
         error_message: str = "Token is not correct",
         error_loc: tp.Optional[tp.Sequence[str]] = None,

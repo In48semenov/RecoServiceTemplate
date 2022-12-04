@@ -1,0 +1,22 @@
+all_models:
+  - model_hardcode
+  - userKNN_with_popular
+  - userKNN_tfidf
+  - userKNN_tfidf_implicit
+  - userKNN_bmp25
+  - userKNN_bmp25_implicit
+  - popular
+  - blending_tfidf_bmp25_idf_offline
+  - blending_tfidf_bmp25_idf_online
+
+current_run:
+  type_reco: online  # can have two meanings: offline / online
+  artifact:
+    offline_reco_path: ./data/hw_3/blending_tfidf_bmp25_idf_rectools_10.csv  # if type_reco = 'online' then field not use
+    model_path_1: ./service/weights/userKNN/tfidf-k60-implicit.dill  # if type_reco = 'offline' then field not use
+    model_path_2: ./service/weights/userKNN/bmp25-k60-implicit.dill # if blending = False then field not use
+    bmp: False  # if type_reco = 'offline' then field not use
+    blending: True  # if type_reco = 'offline' then field not use
+  cold_user:
+    offline_reco_path: ./data/hw_3/popular_item.csv
+

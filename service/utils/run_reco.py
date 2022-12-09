@@ -1,20 +1,21 @@
-from typing import Dict, List
+import typing as tp
 
 import implicit
+import numpy as np
 import pandas as pd
 
 
 def add_reco_popular(
     k_recs: int,
-    curr_recs: List[int],
-    popular_items: List[int],
-) -> List[int]:
+    curr_recs: tp.List[int],
+    popular_items: tp.List[int],
+) -> tp.List[int]:
     """
         The function adds popular to the recommendations,
         if this is not enough.
     """
     for item_pop in popular_items:
-        if item_pop not in curr_recs:
+        if item_pop not in set(curr_recs):
             curr_recs.append(item_pop)
         if len(curr_recs) == k_recs:
             break
@@ -25,11 +26,11 @@ def get_offline_reco(
     user_id: int,
     k_recs: int,
     offline_reco: pd.DataFrame,
-    popular_items: List[int],
-) -> List[int]:
+) -> tp.List[int]:
     """
         The function creates offline recommendation.
     """
+    recs = list()
     if user_id in offline_reco['user_id']:
         recs = offline_reco[
             offline_reco['user_id'] == user_id
@@ -37,75 +38,64 @@ def get_offline_reco(
 
         if len(recs) > k_recs:
             recs = recs[:k_recs]
-        elif len(recs) < k_recs:
-            recs = add_reco_popular(k_recs, recs, popular_items)
-    else:
-        recs = list(popular_items[:k_recs])
 
     return recs
 
 
-def recs_mapper(
+def get_sim_user(
     user: int,
     model: implicit,
-    user_mapping: Dict[int, int],
-    user_inv_mapping: Dict[int, int],
+    users_mapping: tp.Dict[int, int],
+    users_inv_mapping: tp.Dict[int, int],
     k_recs: int,
     bmp: bool,
 ) -> pd.DataFrame:
     """
         The function find similar users.
     """
-    user_id = user_mapping[user]
+    user_id = users_mapping[user]
     recs = model.similar_items(user_id, N=k_recs)
-    result = pd.DataFrame(
-        {
-            "sim_user_id": [user_inv_mapping[user] for user, _ in recs],
-            "sim": [sim for _, sim in recs]
-        }
-    )
 
     if bmp:
-        return result[result['sim_user_id'] != user]
+        recs = list(filter(lambda x: x[0] != users_inv_mapping[user_id], recs))
+
     else:
-        return result[~(result['sim'] >= 1)]
+        recs = list(filter(lambda x: x[1] < 1, recs))
+
+    return [users_inv_mapping[user] for user, _ in recs]
 
 
 def get_online_reco(
     user_id: int,
     model: implicit,
-    watched: pd.DataFrame,
-    user_mapping: Dict[int, int],
-    user_inv_mapping: Dict[int, int],
-    popular_items: List[int],
+    watched: tp.Dict[int, tp.List[int]],
+    users_mapping: tp.Dict[int, int],
+    users_inv_mapping: tp.Dict[int, int],
     k_recs,
     bmp: bool = False,
-) -> list:
+    blending: bool = False,
+) -> tp.List[int]:
     """
         The function creates online recommendation.
     """
-    if user_id in user_mapping:
-        recs = recs_mapper(
+    recs = list()
+    if user_id in users_mapping:
+        sim_user_id = get_sim_user(
             user_id,
             model,
-            user_mapping,
-            user_inv_mapping,
+            users_mapping,
+            users_inv_mapping,
             k_recs,
             bmp
-        ).merge(
-            watched, left_on=['sim_user_id'], right_on=['user_id'], how='left'
-        ).explode('item_id').sort_values(
-            ['sim'], ascending=False
-        ).drop_duplicates(
-            ['item_id'], keep='first'
-        )["item_id"].tolist()
+        )
 
-        if len(recs) > k_recs:
+        recs = np.array(
+            [item for user in sim_user_id for item in watched[user]]
+        )
+        recs = recs[np.sort(np.unique(recs, return_index=True)[1])].tolist()
+
+        if (len(recs) > k_recs) and (not blending):
             recs = recs[:k_recs]
-        elif len(recs) < k_recs:
-            recs = add_reco_popular(k_recs, recs, popular_items)
-    else:
-        recs = list(popular_items[:k_recs])
 
     return recs
 
@@ -115,67 +105,50 @@ def get_online_blending_reco(
     model_tfidf: implicit,
     model_bmp: implicit,
     watched: pd.DataFrame,
-    item_idf: pd.DataFrame,
-    user_mapping: Dict[int, int],
-    user_inv_mapping: Dict[int, int],
-    popular_items: List[int],
+    item_idf: np.array,
+    users_mapping: tp.Dict[int, int],
+    users_inv_mapping: tp.Dict[int, int],
     k_recs
-) -> list:
+) -> tp.List[int]:
     """
         The function creates online recommendation
         with blending by tfidf algorithm.
     """
-    if user_id in user_mapping:
-        recs = pd.concat(
-            [
-                recs_mapper(
-                    user_id,
-                    model_tfidf,
-                    user_mapping,
-                    user_inv_mapping,
-                    k_recs,
-                    bmp=False
-                ).merge(
-                    watched,
-                    left_on=['sim_user_id'],
-                    right_on=['user_id'],
-                    how='left'
-                ).explode('item_id').sort_values(
-                    ['sim'], ascending=False
-                ).drop_duplicates(
-                    ['item_id'], keep='first'
-                )[["item_id"]],
+    recs = list()
+    if user_id in users_mapping:
 
-                recs_mapper(
-                    user_id,
-                    model_bmp,
-                    user_mapping,
-                    user_inv_mapping,
-                    k_recs,
-                    bmp=True
-                ).merge(
-                    watched,
-                    left_on=['sim_user_id'],
-                    right_on=['user_id'],
-                    how='left'
-                ).explode('item_id').sort_values(
-                    ['sim'], ascending=False
-                ).drop_duplicates(
-                    ['item_id'], keep='first'
-                )[["item_id"]]
-            ],
-            ignore_index=True
-        ).drop_duplicates(
-            ["item_id"]
-        ).merge(
-            item_idf, left_on='item_id', right_on='index', how='left'
-        ).sort_values(['idf'], ascending=False)['item_id'].tolist()
+        recs_tfidf = get_online_reco(
+            user_id=user_id,
+            model=model_tfidf,
+            watched=watched,
+            users_mapping=users_mapping,
+            users_inv_mapping=users_inv_mapping,
+            k_recs=k_recs,
+            bmp=False,
+            blending=True,
+        )
+
+        recs_bmp = get_online_reco(
+            user_id=user_id,
+            model=model_bmp,
+            watched=watched,
+            users_mapping=users_mapping,
+            users_inv_mapping=users_inv_mapping,
+            k_recs=k_recs,
+            bmp=True,
+            blending=True,
+        )
+
+        recs = np.unique(
+            np.concatenate(
+                (recs_tfidf, recs_bmp)
+            )
+        )
+
+        mask = np.in1d(item_idf, recs)
+        recs = item_idf[mask].tolist()
 
         if len(recs) > k_recs:
             recs = recs[:k_recs]
-        elif len(recs) < k_recs:
-            recs = add_reco_popular(k_recs, recs, popular_items)
-    else:
-        recs = list(popular_items[:k_recs])
 
     return recs

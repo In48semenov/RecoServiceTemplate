@@ -12,8 +12,9 @@ from service.api.exceptions import (
 )
 from service.config.responses_cfg import example_responses
 from service.log import app_logger
-from service.utils.download_artifact import artifact
+from service.utils.download_artifact import artifact_run, popular_item
 from service.utils.run_reco import (
+    add_reco_popular,
     get_offline_reco,
     get_online_blending_reco,
     get_online_reco,
@@ -65,7 +66,7 @@ async def get_reco(
 ) -> RecoResponse:
     app_logger.info(f"Request for model: {model_name}, user_id: {user_id}")
 
-    if model_name not in artifact["all_models"]:
+    if model_name not in artifact_run["registered_model"]:
         raise ModelNotFoundError(
             error_message=f"Model name '{model_name}' not found"
         )
@@ -76,39 +77,45 @@ async def get_reco(
     k_recs = request.app.state.k_recs
 
     try:
-        if artifact["type_reco"] == "offline":
+        if artifact_run["type_reco"] == "offline":
             recs = get_offline_reco(
                 user_id=user_id,
                 k_recs=k_recs,
-                offline_reco=artifact["model_artifact_1"],
-                popular_items=artifact["cold_user_artifact"]
-            )
-        elif not artifact["blending"]:
-            recs = get_online_reco(
-                user_id=user_id,
-                model=artifact["model_artifact_1"],
-                watched=artifact["watched"],
-                user_mapping=artifact["users_mapping"],
-                user_inv_mapping=artifact["users_inv_mapping"],
-                popular_items=artifact["cold_user_artifact"],
-                k_recs=k_recs,
-                bmp=artifact["bmp"],
+                offline_reco=artifact_run["offline_reco"],
             )
         else:
-            recs = get_online_blending_reco(
-                user_id=user_id,
-                model_tfidf=artifact["model_artifact_1"],
-                model_bmp=artifact["model_artifact_2"],
-                watched=artifact["watched"],
-                item_idf=artifact["item_idf"],
-                user_mapping=artifact["users_mapping"],
-                user_inv_mapping=artifact["users_inv_mapping"],
-                popular_items=artifact["cold_user_artifact"],
+            if not artifact_run["blending"]:
+                recs = get_online_reco(
+                    user_id=user_id,
+                    model=artifact_run["model"],
+                    watched=artifact_run["watched"],
+                    users_mapping=artifact_run["users_mapping"],
+                    users_inv_mapping=artifact_run["users_inv_mapping"],
+                    k_recs=k_recs,
+                    bmp=artifact_run["bmp"]
+                )
+
+            else:
+                recs = get_online_blending_reco(
+                    user_id=user_id,
+                    model_tfidf=artifact_run["model_tfidf"],
+                    model_bmp=artifact_run["model_bmp"],
+                    watched=artifact_run["watched"],
+                    item_idf=artifact_run["item_idf"],
+                    users_mapping=artifact_run["users_mapping"],
+                    users_inv_mapping=artifact_run["users_inv_mapping"],
+                    k_recs=k_recs,
+                )
+
+        if len(recs) != k_recs:
+            recs = add_reco_popular(
                 k_recs=k_recs,
+                curr_recs=recs,
+                popular_items=popular_item
             )
 
     except Exception:
-        recs = list(artifact["cold_user_artifact"][:k_recs])
+        recs = popular_item[:k_recs]
 
     return RecoResponse(user_id=user_id, items=recs)
 

@@ -1,9 +1,9 @@
 import typing as tp
 
-from rectools import Columns
-import numpy as np
 import nmslib
+import numpy as np
 import yaml
+from rectools import Columns
 
 from service.utils.common_artifact import interactions
 

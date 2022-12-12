@@ -5,23 +5,6 @@ import numpy as np
 import pandas as pd
 
 
-def add_reco_popular(
-    k_recs: int,
-    curr_recs: tp.List[int],
-    popular_items: tp.List[int],
-) -> tp.List[int]:
-    """
-        The function adds popular to the recommendations,
-        if this is not enough.
-    """
-    for item_pop in popular_items:
-        if item_pop not in set(curr_recs):
-            curr_recs.append(item_pop)
-        if len(curr_recs) == k_recs:
-            break
-    return curr_recs
-
-
 def get_offline_reco(
     user_id: int,
     k_recs: int,

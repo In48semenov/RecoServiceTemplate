@@ -13,8 +13,8 @@ from service.api.exceptions import (
 from service.config.responses_cfg import example_responses
 from service.log import app_logger
 from service.utils.common_artifact import registered_model
-from service.utils.run_reco_mf import mf_model
-from service.utils.run_reco_popular import add_reco_popular
+from service.utils.run_reco_pipeline import pipeline
+from service.utils.popular.run_reco_popular import add_reco_popular
 
 with open('./service/envs/authentication_env.yaml') as env_config:
     ENV_TOKEN = yaml.safe_load(env_config)
@@ -72,7 +72,7 @@ async def get_reco(
 
     k_recs = request.app.state.k_recs
 
-    recs = mf_model(user_id=user_id, k_recs=k_recs)
+    recs = pipeline.recommend(user_id=user_id, k_recs=k_recs)
 
     recs = add_reco_popular(k_recs=k_recs, curr_recs=recs)
 

@@ -14,12 +14,12 @@ class RecommendMF:
     """
     path_config_run = "./service/config/inference-MF.cfg.yml"
     def __init__(self):
-        with open(self.path_config_run) as models_config:
-            params = yaml.safe_load(models_config)
-
         """
         Download model artifact
         """
+        with open(self.path_config_run) as models_config:
+            params = yaml.safe_load(models_config)
+
         self.user_embeddings = np.load(params["user_embeddings"])
         self.item_embeddings = np.load(params["item_embeddings"])
 
@@ -48,7 +48,7 @@ class RecommendMF:
             enumerate(interactions[Columns.Item].unique())
         )
 
-    def __call__(self, user_id: int, k_recs: int) -> tp.List[int]:
+    def recommend(self, user_id: int, k_recs: int) -> tp.List[int]:
         """
         get reco
         """

@@ -26,9 +26,10 @@ plotly = "^5.11.0"
 matplotlib = "^3.6.2"
 dill = "^0.3.6"
 optuna = "^3.0.4"
-lightfm = "^1.16"
+# lightfm = "^1.16"
 seaborn = "^0.12.1"
 nmslib = "^2.1.1"
+rectools = "^0.4.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"

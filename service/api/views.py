@@ -32,6 +32,7 @@ auth_scheme = HTTPBearer(auto_error=False)
 async def authorization_by_token(
     token: HTTPAuthorizationCredentials = Security(auth_scheme),
 ):
+    # print('\n\n\n TOKEEEEEEN:', token.credentials)
     if token is not None and token.credentials == ENV_TOKEN['token']:
         return token.credentials
     else:
@@ -43,7 +44,7 @@ async def authorization_by_token(
     tags=["Health"],
 )
 async def health(
-    token: HTTPAuthorizationCredentials = Depends(authorization_by_token)
+    # token: HTTPAuthorizationCredentials = Depends(authorization_by_token)
 ) -> str:
     return "I am alive"
 
@@ -58,7 +59,7 @@ async def get_reco(
     request: Request,
     model_name: str,
     user_id: int,
-    token: HTTPAuthorizationCredentials = Depends(authorization_by_token),
+    # token: HTTPAuthorizationCredentials = Depends(authorization_by_token),
 ) -> RecoResponse:
     app_logger.info(f"Request for model: {model_name}, user_id: {user_id}")
 
@@ -66,13 +67,15 @@ async def get_reco(
         raise ModelNotFoundError(
             error_message=f"Model name '{model_name}' not found"
         )
-
+    
     if user_id > 10 ** 9:
         raise UserNotFoundError(error_message=f"User {user_id} not found")
 
     k_recs = request.app.state.k_recs
 
-    recs = pipeline.recommend(user_id=user_id, k_recs=k_recs)
+    # recs = pipeline.recommend(user_id=user_id, k_recs=k_recs)
+
+    recs = []
 
     recs = add_reco_popular(k_recs=k_recs, curr_recs=recs)
 

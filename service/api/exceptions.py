@@ -17,26 +17,26 @@ class AppException(Exception):
         super().__init__()
 
 
-class UserNotFoundError(AppException):
-    def __init__(
-        self,
-        status_code: int = HTTPStatus.NOT_FOUND,
-        error_key: str = "user_not_found",
-        error_message: str = "User is unknown",
-        error_loc: tp.Optional[tp.Sequence[str]] = None,
-    ):
-        super().__init__(status_code, error_key, error_message, error_loc)
+# class UserNotFoundError(AppException):
+#     def __init__(
+#         self,
+#         status_code: int = HTTPStatus.NOT_FOUND,
+#         error_key: str = "user_not_found",
+#         error_message: str = "User is unknown",
+#         error_loc: tp.Optional[tp.Sequence[str]] = None,
+#     ):
+#         super().__init__(status_code, error_key, error_message, error_loc)
 
 
-class ModelNotFoundError(AppException):
-    def __init__(
-        self,
-        status_code: int = HTTPStatus.NOT_FOUND,
-        error_key: str = "model_not_found",
-        error_message: str = "Model name is unknown",
-        error_loc: tp.Optional[tp.Sequence[str]] = None,
-    ):
-        super().__init__(status_code, error_key, error_message, error_loc)
+# class ModelNotFoundError(AppException):
+#     def __init__(
+#         self,
+#         status_code: int = HTTPStatus.NOT_FOUND,
+#         error_key: str = "model_not_found",
+#         error_message: str = "Model name is unknown",
+#         error_loc: tp.Optional[tp.Sequence[str]] = None,
+#     ):
+#         super().__init__(status_code, error_key, error_message, error_loc)
 
 
 class AuthenticateError(AppException):
@@ -48,3 +48,30 @@ class AuthenticateError(AppException):
         error_loc: tp.Optional[tp.Sequence[str]] = None,
     ):
         super().__init__(status_code, error_key, error_message, error_loc)
+
+
+class ModelNotFoundError(Exception):
+    def __init__(
+        self, 
+        message="Model name is unknown"
+    ):
+        self.message = message
+        super().__init__(self.message)
+
+
+class UserNotFoundError(Exception):
+    def __init__(
+        self, 
+        message="User is unknown"
+    ):
+        self.message = message
+        super().__init__(self.message)
+
+
+class DevilsUsersError(Exception):
+    def __init__(
+        self, 
+        message="Userid is devisible by 666"
+    ):
+        self.message = message
+        super().__init__(self.message)

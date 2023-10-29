@@ -9,12 +9,15 @@ from service.api.exceptions import (
     AuthenticateError,
     ModelNotFoundError,
     UserNotFoundError,
+    DevilsUsersError,
 )
 from service.config.responses_cfg import example_responses
 from service.log import app_logger
 from service.utils.common_artifact import registered_model
 from service.utils.run_reco_pipeline import pipeline
 from service.utils.popular.run_reco_popular import add_reco_popular
+import sentry_sdk
+
 
 with open('./service/envs/authentication_env.yaml') as env_config:
     ENV_TOKEN = yaml.safe_load(env_config)
@@ -49,6 +52,11 @@ async def health(
     return "I am alive"
 
 
+@router.get("/sentry-debug")
+async def trigger_error():
+    division_by_zero = 1 / 0
+
+
 @router.get(
     path="/reco/{model_name}/{user_id}",
     tags=["Recommendations"],
@@ -63,13 +71,21 @@ async def get_reco(
 ) -> RecoResponse:
     app_logger.info(f"Request for model: {model_name}, user_id: {user_id}")
 
+    if user_id % 666 == 0:
+        raise DevilsUsersError(
+            message=f"User {user_id} not found"
+        )
+
     if model_name not in registered_model:
         raise ModelNotFoundError(
-            error_message=f"Model name '{model_name}' not found"
+            message=f"Model name '{model_name}' not found"
         )
     
     if user_id > 10 ** 9:
-        raise UserNotFoundError(error_message=f"User {user_id} not found")
+        raise UserNotFoundError(
+            message=f"User {user_id} not found"
+        )
+
 
     k_recs = request.app.state.k_recs
 

@@ -1,7 +1,7 @@
 from typing import List
 
 import yaml
-from fastapi import APIRouter, Depends, FastAPI, Request, Security
+from fastapi import APIRouter, Depends, FastAPI, Request, Security, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
@@ -17,6 +17,7 @@ from service.utils.common_artifact import registered_model
 from service.utils.run_reco_pipeline import pipeline
 from service.utils.popular.run_reco_popular import add_reco_popular
 import sentry_sdk
+import prometheus_client
 
 
 with open('./service/envs/authentication_env.yaml') as env_config:
@@ -52,11 +53,6 @@ async def health(
     return "I am alive"
 
 
-@router.get("/sentry-debug")
-async def trigger_error():
-    division_by_zero = 1 / 0
-
-
 @router.get(
     path="/reco/{model_name}/{user_id}",
     tags=["Recommendations"],
@@ -85,7 +81,6 @@ async def get_reco(
         raise UserNotFoundError(
             message=f"User {user_id} not found"
         )
-
 
     k_recs = request.app.state.k_recs
 
